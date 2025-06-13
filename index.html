@@ -9,9 +9,8 @@
     body {
       text-align: center;
       font-family: Arial, sans-serif;
-      background: transparent;
+      background: rgba(0,0,0,0.9);
       color: #fff;
-      overflow: hidden;
     }
     video {
       width: 100%;
@@ -38,9 +37,7 @@
       box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
       animation: fadeIn 0.5s ease-in-out;
     }
-    h2, p {
-      margin: 5px 0;
-    }
+    h2, p { margin: 5px 0; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -66,14 +63,25 @@
 
     async function recognizePlate() {
         const canvas = document.createElement("canvas");
+        const video = document.getElementById("camera");
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(document.getElementById("camera"), 0, 0, canvas.width, canvas.height);
+
+        // 📌 Nastavení velikosti snímku SPZ (zvětší ostrost)
+        canvas.width = video.videoWidth * 0.5;
+        canvas.height = video.videoHeight * 0.2;
+
+        // 🚗 Přidání filtru pro zvýšení kvality obrazu
+        ctx.filter = "contrast(250%) brightness(110%) grayscale(100%)";
+
+        // 🎯 Vyříznutí dolní části obrazu, kde se obvykle nachází SPZ
+        ctx.drawImage(video, canvas.width * 0.25, canvas.height * 0.6, canvas.width * 0.5, canvas.height * 0.3, 0, 0, canvas.width, canvas.height);
 
         const { data } = await Tesseract.recognize(canvas, 'eng', {
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
         let plate = data.text.trim().replace(/\s/g, '');
+
         return carDatabase[plate] ? carDatabase[plate] : null;
     }
 
@@ -100,4 +108,5 @@
   </script>
 </body>
 </html>
+
 
