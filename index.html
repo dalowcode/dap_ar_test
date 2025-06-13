@@ -68,23 +68,18 @@
       }
     };
 
-    async function getCameraFacingMode() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === "videoinput");
-
-        const hasBackCamera = videoDevices.some(device => device.label.toLowerCase().includes("back"));
-
-        return hasBackCamera ? "environment" : "user"; // Zadní kamera nebo přední
-    }
-
     async function startCamera() {
-        const facingMode = await getCameraFacingMode();
-        
-        navigator.mediaDevices.getUserMedia({ video: { facingMode } })
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
             .then(stream => {
                 document.getElementById("camera").srcObject = stream;
             })
-            .catch(err => alert("Nelze načíst kameru: " + err));
+            .catch(() => {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                    .then(stream => {
+                        document.getElementById("camera").srcObject = stream;
+                    })
+                    .catch(err => alert("Nelze načíst kameru: " + err));
+            });
     }
 
     async function recognizePlate() {
@@ -104,7 +99,6 @@
 
         let plate = data.text.trim();
 
-        // 🛠 Zobrazení OCR výstupu na stránce
         document.getElementById("ocrText").innerText = plate || "Nic nerozpoznáno";
 
         return carDatabase[plate.replace(/\s/g, '')] ? carDatabase[plate.replace(/\s/g, '')] : null;
@@ -117,7 +111,7 @@
         const overlay = document.getElementById("overlay");
         const rawOutput = document.getElementById("rawOutput");
 
-        rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR na stránce
+        rawOutput.style.display = "block";
 
         if (carDetails) {
             overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
