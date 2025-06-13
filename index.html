@@ -68,6 +68,25 @@
       }
     };
 
+    async function getCameraFacingMode() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+        const hasBackCamera = videoDevices.some(device => device.label.toLowerCase().includes("back"));
+
+        return hasBackCamera ? "environment" : "user"; // Zadní kamera nebo přední
+    }
+
+    async function startCamera() {
+        const facingMode = await getCameraFacingMode();
+        
+        navigator.mediaDevices.getUserMedia({ video: { facingMode } })
+            .then(stream => {
+                document.getElementById("camera").srcObject = stream;
+            })
+            .catch(err => alert("Nelze načíst kameru: " + err));
+    }
+
     async function recognizePlate() {
         const canvas = document.createElement("canvas");
         const video = document.getElementById("camera");
@@ -95,29 +114,26 @@
         return carDatabase[plate] ? carDatabase[plate] : null;
     }
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-        .then(stream => {
-            document.getElementById("camera").srcObject = stream;
-            setInterval(async () => {
-                const carDetails = await recognizePlate();
-                const overlay = document.getElementById("overlay");
-                const rawOutput = document.getElementById("rawOutput");
+    startCamera();
 
-                rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR
+    setInterval(async () => {
+        const carDetails = await recognizePlate();
+        const overlay = document.getElementById("overlay");
+        const rawOutput = document.getElementById("rawOutput");
 
-                if (carDetails) {
-                    overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
-                    <p>📍 Najeto: ${carDetails.mileage}</p>
-                    <p>🛠 Poslední servis: ${carDetails.service}</p>
-                    <p>🔧 Brzdy: ${carDetails.brakes}</p>
-                    <p>✅ STK do: ${carDetails.stk}</p>`;
-                    overlay.style.display = "block";
-                } else {
-                    overlay.style.display = "none";
-                }
-            }, 5000);
-        })
-        .catch(err => alert("Nelze načíst kameru: " + err));
+        rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR
+
+        if (carDetails) {
+            overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
+            <p>📍 Najeto: ${carDetails.mileage}</p>
+            <p>🛠 Poslední servis: ${carDetails.service}</p>
+            <p>🔧 Brzdy: ${carDetails.brakes}</p>
+            <p>✅ STK do: ${carDetails.stk}</p>`;
+            overlay.style.display = "block";
+        } else {
+            overlay.style.display = "none";
+        }
+    }, 5000);
   </script>
 </body>
 </html>
