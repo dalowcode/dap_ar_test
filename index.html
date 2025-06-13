@@ -9,37 +9,45 @@
     body {
       text-align: center;
       font-family: Arial, sans-serif;
-      background: rgba(0,0,0,0.8);
+      background: transparent;
       color: #fff;
+      overflow: hidden;
     }
     video {
       width: 100%;
-      max-height: 400px;
+      height: 100vh;
       position: absolute;
       top: 0;
       left: 0;
+      object-fit: cover;
       z-index: -1;
     }
     #overlay {
       position: absolute;
-      top: 50%;
+      bottom: 10%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,255,0,0.1);
-      border: 2px solid rgba(0,255,0,0.8);
+      transform: translateX(-50%);
+      background: rgba(0, 255, 0, 0.2);
+      border: 2px solid rgba(0, 255, 0, 0.8);
       padding: 20px;
       border-radius: 10px;
       backdrop-filter: blur(10px);
       display: none;
       text-align: left;
       font-size: 18px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+      animation: fadeIn 0.5s ease-in-out;
     }
-    h2, p { animation: fadeIn 0.5s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    h2, p {
+      margin: 5px 0;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
-  <h1>AR Rozpoznání SPZ 🚗</h1>
   <video id="camera" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
   <div id="overlay"><h2>🚘 Načítání...</h2></div>
@@ -55,10 +63,6 @@
         image: "https://example.com/superb.jpg"
       }
     };
-
-    function isValidCZPlate(plate) {
-        return /^[0-9][A-Z]{2}\s?[0-9]{4}$/.test(plate); // Ověření českého formátu SPZ
-    }
 
     async function recognizePlate() {
         const canvas = document.createElement("canvas");
@@ -96,5 +100,4 @@
   </script>
 </body>
 </html>
-
 
