@@ -57,16 +57,7 @@
   <div id="rawOutput"><h3>🛠 Surový OCR Výstup:</h3><p id="ocrText">Načítání...</p></div>
 
   <script>
-    const carDatabase = {
-      "1AEE137": {
-        model: "Škoda Superb 2.0 TDI",
-        mileage: "153 400 km",
-        service: "Servis 05/2025",
-        brakes: "20% opotřebení",
-        stk: "Platná do 06/2027",
-        image: "https://example.com/superb.jpg"
-      }
-    };
+    const validPlates = ["1AEE137", "2BCD456", "3XYZ789"]; // ✅ Seznam SPZ k hledání
 
     async function startCamera() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -86,18 +77,20 @@
         canvas.width = video.videoWidth * 0.5;
         canvas.height = video.videoHeight * 0.2;
 
-        ctx.filter = "contrast(250%) brightness(110%) grayscale(100%)";
+        ctx.filter = "contrast(300%) brightness(120%) grayscale(100%)";
         ctx.drawImage(video, canvas.width * 0.25, canvas.height * 0.6, canvas.width * 0.5, canvas.height * 0.3, 0, 0, canvas.width, canvas.height);
 
         const { data } = await Tesseract.recognize(canvas, 'eng', {
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
-        let plate = data.text.trim();
+        let plate = data.text.trim().replace(/\s/g, '');
 
+        // 🛠 Zobrazení surového OCR výstupu na stránce
         document.getElementById("ocrText").innerText = plate || "Nic nerozpoznáno";
 
-        return carDatabase[plate.replace(/\s/g, '')] ? carDatabase[plate.replace(/\s/g, '')] : null;
+        // 🔥 **Filtrujeme pouze platné SPZ**
+        return validPlates.includes(plate) ? plate : null;
     }
 
     startCamera();
@@ -110,11 +103,7 @@
         rawOutput.style.display = "block";
 
         if (carDetails) {
-            overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
-            <p>📍 Najeto: ${carDetails.mileage}</p>
-            <p>🛠 Poslední servis: ${carDetails.service}</p>
-            <p>🔧 Brzdy: ${carDetails.brakes}</p>
-            <p>✅ STK do: ${carDetails.stk}</p>`;
+            overlay.innerHTML = `<h2>🚘 SPZ nalezena: ${carDetails}</h2>`;
             overlay.style.display = "block";
         } else {
             overlay.style.display = "none";
@@ -123,3 +112,4 @@
   </script>
 </body>
 </html>
+
