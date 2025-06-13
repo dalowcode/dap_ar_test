@@ -74,11 +74,7 @@
                 document.getElementById("camera").srcObject = stream;
             })
             .catch(() => {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                    .then(stream => {
-                        document.getElementById("camera").srcObject = stream;
-                    })
-                    .catch(err => alert("Nelze načíst kameru: " + err));
+                alert("❌ Zadní kamera není dostupná. Aplikace nebude fungovat správně.");
             });
     }
 
