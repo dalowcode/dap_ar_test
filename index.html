@@ -1,72 +1,61 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Autoasistent AR Demo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rozpoznání SPZ</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: sans-serif;
-      text-align: center;
-      background-color: #222;
-      color: #fff;
-    }
-    video {
-      width: 100%;
-      max-height: 400px;
-    }
-    #overlay {
-      margin-top: 20px;
-      background: rgba(0,0,0,0.6);
-      padding: 15px;
-      border-radius: 8px;
-      display: inline-block;
-    }
-    canvas {
-      display: none;
-    }
+    body { text-align: center; font-family: Arial, sans-serif; background: #222; color: #fff; }
+    video { width: 100%; max-height: 400px; }
+    #overlay { margin-top: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; display: inline-block; }
+    canvas { display: none; }
   </style>
 </head>
 <body>
-  <h1>Autoasistent AR Demo 🚗</h1>
+  <h1>Rozpoznání SPZ 🚗</h1>
   <video id="camera" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
-  <div id="overlay">
-    <h2>🚘 SPZ: Načítání...</h2>
-    <p>📍 Data o vozidle se načtou automaticky...</p>
-  </div>
+  <div id="overlay"><h2>🚘 SPZ: Načítání...</h2></div>
 
   <script>
-    async function recognizePlate(imageElement) {
-        const { data } = await Tesseract.recognize(imageElement, 'eng');
-        return data.text.trim().replace(/\s/g, ''); // Odstranění mezer
+    function isValidCZPlate(plate) {
+        return /^[0-9][A-Z]{2}\s[0-9]{4}$/.test(plate); // Ověření českého formátu SPZ
     }
 
-    const video = document.getElementById('camera');
-    const canvas = document.getElementById('canvas');
-    const overlay = document.getElementById('overlay');
+    function detectPlate(canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 🚗 Předzpracování obrazu pro lepší OCR
+        ctx.filter = "contrast(200%) grayscale(100%)"; 
+
+        // 📌 Vyříznutí části obrazu (předpoklad SPZ v dolní třetině)
+        const plateRegion = ctx.getImageData(canvas.width * 0.25, canvas.height * 0.6, canvas.width * 0.5, canvas.height * 0.3);
+        return plateRegion;
+    }
+
+    async function recognizePlate() {
+        const plateRegion = detectPlate(canvas);
+        const { data } = await Tesseract.recognize(plateRegion, 'eng', {
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        });
+
+        const plate = data.text.trim().replace(/\s/g, '');
+        return isValidCZPlate(plate) ? plate : "Neplatná SPZ";
+    }
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(stream => {
-            video.srcObject = stream;
+            document.getElementById('camera').srcObject = stream;
             setInterval(async () => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                const plate = await recognizePlate(canvas);
-                overlay.innerHTML = `<h2>🚘 SPZ: ${plate}</h2><p>📍 Načtená data...</p>`;
+                const plate = await recognizePlate();
+                document.getElementById('overlay').innerHTML = `<h2>🚘 SPZ: ${plate}</h2>`;
             }, 5000);
         })
         .catch(err => alert("Nelze načíst kameru: " + err));
   </script>
 </body>
 </html>
-
 
 
