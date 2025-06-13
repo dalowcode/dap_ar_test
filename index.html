@@ -50,7 +50,7 @@
     const canvas = document.getElementById('canvas');
     const overlay = document.getElementById('overlay');
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(stream => {
             video.srcObject = stream;
             setInterval(async () => {
@@ -67,5 +67,6 @@
   </script>
 </body>
 </html>
+
 
 
