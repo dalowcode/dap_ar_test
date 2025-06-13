@@ -21,14 +21,14 @@
       object-fit: cover;
       z-index: -1;
     }
-    #overlay {
+    #overlay, #rawOutput {
       position: absolute;
       bottom: 10%;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 255, 0, 0.2);
       border: 2px solid rgba(0, 255, 0, 0.8);
-      padding: 20px;
+      padding: 15px;
       border-radius: 10px;
       backdrop-filter: blur(10px);
       display: none;
@@ -36,6 +36,12 @@
       font-size: 18px;
       box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
       animation: fadeIn 0.5s ease-in-out;
+    }
+    #rawOutput {
+      background: rgba(255, 0, 0, 0.2);
+      border-color: rgba(255, 0, 0, 0.8);
+      font-size: 16px;
+      margin-top: 20px;
     }
     h2, p { margin: 5px 0; }
     @keyframes fadeIn {
@@ -48,6 +54,7 @@
   <video id="camera" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
   <div id="overlay"><h2>🚘 Načítání...</h2></div>
+  <div id="rawOutput"><h3>🛠 Surový OCR Výstup:</h3><p id="ocrText">Načítání...</p></div>
 
   <script>
     const carDatabase = {
@@ -80,6 +87,9 @@
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
+        // 🛠 Zobrazení surového OCR výstupu
+        document.getElementById("ocrText").innerText = data.text.trim();
+
         let plate = data.text.trim().replace(/\s/g, '');
 
         return carDatabase[plate] ? carDatabase[plate] : null;
@@ -91,6 +101,9 @@
             setInterval(async () => {
                 const carDetails = await recognizePlate();
                 const overlay = document.getElementById("overlay");
+                const rawOutput = document.getElementById("rawOutput");
+
+                rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR
 
                 if (carDetails) {
                     overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
@@ -108,5 +121,4 @@
   </script>
 </body>
 </html>
-
 
