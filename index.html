@@ -1,53 +1,77 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detekce SPZ</title>
+    <title>SPZ Detektor AR</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4"></script>
     <style>
-        body { text-align: center; font-family: Arial, sans-serif; }
-        video { width: 100%; max-width: 600px; }
-        button { margin-top: 10px; padding: 10px; font-size: 16px; }
-        #plateResult { margin-top: 20px; font-size: 18px; font-weight: bold; }
+        #cameraView { position: relative; }
+        #video { width: 100%; }
+        #canvas { position: absolute; top: 0; left: 0; }
+        #arInfo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; }
     </style>
 </head>
 <body>
-    <h1>📷 Rozpoznání SPZ</h1>
-    <video id="camera" autoplay playsinline></video>
-    <button onclick="captureFrame()">🔍 Analyzovat SPZ</button>
-    <p id="plateResult">Výsledek: Čekám na obraz...</p>
+    <div id="cameraView">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="arInfo">
+            SPZ: <span id="spz">---</span><br>
+            Značka: <span id="brand">---</span>
+        </div>
+    </div>
 
     <script>
-        async function startCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            document.getElementById("camera").srcObject = stream;
-        }
+        // 1. Nastartuje kameru
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    detectSPZ();
+                };
+            });
 
-        function captureFrame() {
-            const video = document.getElementById("camera");
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d");
+        // 2. Detekce SPZ pomocí TensorFlow.js + Tesseract.js
+        async function detectSPZ() {
+            // a) Nakreslí aktuální snímek na canvas
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = canvas.toDataURL("image/jpeg"); // 📷 Převod na Base64
-
-            fetch("https://your-colab-api-url.com/detect", { // 🔗 Odeslání na backend
-                method: "POST",
-                body: JSON.stringify({ image: imageData }),
-                headers: { "Content-Type": "application/json" }
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("plateResult").innerText = `Výsledek: ${data.plate}`;
-            })
-            .catch(error => console.error("Chyba:", error));
+            
+            // b) Použije Tesseract.js pro OCR (lze optimalizovat pro SPZ)
+            const { data: { text } } = await Tesseract.recognize(
+                canvas,
+                'eng+ces', // Angličtina + čeština
+                { logger: m => console.log(m) }
+            );
+            
+            // c) Filtruje potenciální SPZ (např. "1AB2345")
+            const spzRegex = /[0-9A-Z]{2,10}/;
+            const possibleSPZ = text.match(spzRegex)?.[0] || "N/A";
+            
+            document.getElementById('spz').textContent = possibleSPZ;
+            
+            // d) Získání dat o vozidle (lokální "databáze")
+            const vehicleData = getVehicleData(possibleSPZ);
+            if (vehicleData) {
+                document.getElementById('brand').textContent = vehicleData.brand;
+            }
+            
+            requestAnimationFrame(detectSPZ); // Opakuje detekci
         }
 
-        startCamera();
+        // 3. Lokální "databáze" vozidel (nahraďte reálnými daty)
+        function getVehicleData(spz) {
+            const mockDB = {
+                "ABC1234": { brand: "Škoda", model: "Octavia" },
+                "XYZ987": { brand: "BMW", model: "X5" }
+            };
+            return mockDB[spz];
+        }
     </script>
 </body>
 </html>
-
-
