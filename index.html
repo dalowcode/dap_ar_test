@@ -3,70 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rozpoznání SPZ</title>
+  <title>AR Rozpoznání SPZ</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
   <style>
-    body { text-align: center; font-family: Arial, sans-serif; background: #222; color: #fff; }
-    video { width: 100%; max-height: 400px; }
-    #overlay { margin-top: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; display: inline-block; }
-    canvas { display: none; }
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+    }
+    video {
+      width: 100%;
+      max-height: 400px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    #overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,255,0,0.1);
+      border: 2px solid rgba(0,255,0,0.8);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      display: none;
+      text-align: left;
+      font-size: 18px;
+    }
+    h2, p { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
-  <h1>Rozpoznání SPZ 🚗</h1>
+  <h1>AR Rozpoznání SPZ 🚗</h1>
   <video id="camera" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
-  <div id="overlay"><h2>🚘 SPZ: Načítání...</h2></div>
+  <div id="overlay"><h2>🚘 Načítání...</h2></div>
 
   <script>
+    const carDatabase = {
+      "1AEE137": {
+        model: "Škoda Superb 2.0 TDI",
+        mileage: "153 400 km",
+        service: "Servis 05/2025",
+        brakes: "20% opotřebení",
+        stk: "Platná do 06/2027",
+        image: "https://example.com/superb.jpg"
+      }
+    };
+
     function isValidCZPlate(plate) {
-        return /^[0-9][A-Z]{2}\s[0-9]{4}$/.test(plate); // Ověření českého formátu SPZ
-    }
-
-    function isImageSharp(canvas) {
-        const ctx = canvas.getContext("2d");
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        
-        let sum = 0;
-        for (let i = 0; i < pixels.length; i += 4) {
-            sum += Math.abs(pixels[i] - pixels[i+4]); // Změna mezi pixely
-        }
-
-        return sum > 50000; // Použijeme jen ostré obrázky
-    }
-
-    function preprocessImage(canvas) {
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // 🚗 Zvýšení kontrastu a převod na černobílý → lepší čitelnost SPZ
-        ctx.filter = "contrast(250%) grayscale(100%)"; 
-
-        return canvas;
+        return /^[0-9][A-Z]{2}\s?[0-9]{4}$/.test(plate); // Ověření českého formátu SPZ
     }
 
     async function recognizePlate() {
-        const canvas = preprocessImage(document.createElement("canvas"));
-
-        if (!isImageSharp(canvas)) return "Obraz je rozmazaný!";
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(document.getElementById("camera"), 0, 0, canvas.width, canvas.height);
 
         const { data } = await Tesseract.recognize(canvas, 'eng', {
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
         let plate = data.text.trim().replace(/\s/g, '');
-
-        // 🔥 **Filtrace nežádoucích vedlejších textů**
-        return isValidCZPlate(plate) ? plate : "Neplatná SPZ";
+        return carDatabase[plate] ? carDatabase[plate] : null;
     }
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(stream => {
-            document.getElementById('camera').srcObject = stream;
+            document.getElementById("camera").srcObject = stream;
             setInterval(async () => {
-                const plate = await recognizePlate();
-                document.getElementById('overlay').innerHTML = `<h2>🚘 SPZ: ${plate}</h2>`;
+                const carDetails = await recognizePlate();
+                const overlay = document.getElementById("overlay");
+
+                if (carDetails) {
+                    overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
+                    <p>📍 Najeto: ${carDetails.mileage}</p>
+                    <p>🛠 Poslední servis: ${carDetails.service}</p>
+                    <p>🔧 Brzdy: ${carDetails.brakes}</p>
+                    <p>✅ STK do: ${carDetails.stk}</p>`;
+                    overlay.style.display = "block";
+                } else {
+                    overlay.style.display = "none";
+                }
             }, 5000);
         })
         .catch(err => alert("Nelze načíst kameru: " + err));
