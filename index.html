@@ -92,26 +92,22 @@
         const video = document.getElementById("camera");
         const ctx = canvas.getContext("2d");
 
-        // 📌 Nastavení velikosti snímku SPZ (zvětší ostrost)
         canvas.width = video.videoWidth * 0.5;
         canvas.height = video.videoHeight * 0.2;
 
-        // 🚗 Přidání filtru pro zvýšení kvality obrazu
         ctx.filter = "contrast(250%) brightness(110%) grayscale(100%)";
-
-        // 🎯 Vyříznutí dolní části obrazu, kde se obvykle nachází SPZ
         ctx.drawImage(video, canvas.width * 0.25, canvas.height * 0.6, canvas.width * 0.5, canvas.height * 0.3, 0, 0, canvas.width, canvas.height);
 
         const { data } = await Tesseract.recognize(canvas, 'eng', {
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
-        // 🛠 Zobrazení surového OCR výstupu
-        document.getElementById("ocrText").innerText = data.text.trim();
+        let plate = data.text.trim();
 
-        let plate = data.text.trim().replace(/\s/g, '');
+        // 🛠 Zobrazení OCR výstupu na stránce
+        document.getElementById("ocrText").innerText = plate || "Nic nerozpoznáno";
 
-        return carDatabase[plate] ? carDatabase[plate] : null;
+        return carDatabase[plate.replace(/\s/g, '')] ? carDatabase[plate.replace(/\s/g, '')] : null;
     }
 
     startCamera();
@@ -121,7 +117,7 @@
         const overlay = document.getElementById("overlay");
         const rawOutput = document.getElementById("rawOutput");
 
-        rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR
+        rawOutput.style.display = "block"; // ✅ Zobrazujeme surový text OCR na stránce
 
         if (carDetails) {
             overlay.innerHTML = `<h2>🚘 ${carDetails.model}</h2>
@@ -137,4 +133,3 @@
   </script>
 </body>
 </html>
-
