@@ -4,11 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Autoasistent AR Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
   <style>
     body, html {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      font-family: sans-serif;
     }
     video {
       position: absolute;
@@ -24,7 +26,6 @@
       color: #fff;
       padding: 15px;
       border-radius: 8px;
-      font-family: sans-serif;
       max-width: 90%;
     }
   </style>
@@ -32,22 +33,35 @@
 <body>
   <video id="camera" autoplay playsinline></video>
   <div id="overlay">
-    <h2>🚘 Škoda Octavia 1.6 TDI</h2>
-    <p>📍 Najeto: 143 200 km</p>
-    <p>🛠 Poslední servis: 12/2024</p>
-    <p>🔧 Brzdy: 30 % opotřebení</p>
-    <p>✅ STK do: 11/2026</p>
+    <h2>🚘 SPZ: Načítání...</h2>
+    <p>📍 Data o vozidle se načtou automaticky...</p>
   </div>
 
   <script>
+    async function recognizePlate(imageElement) {
+        const { data } = await Tesseract.recognize(imageElement, 'eng');
+        return data.text.trim();
+    }
+
     const video = document.getElementById('camera');
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert("Nelze načíst kameru: " + err);
-      });
+    const overlay = document.getElementById('overlay');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            setInterval(async () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const plate = await recognizePlate(canvas);
+                overlay.innerHTML = `<h2>🚘 SPZ: ${plate}</h2><p>📍 Načtená data...</p>`;
+            }, 5000);
+        })
+        .catch(err => alert("Nelze načíst kameru: " + err));
   </script>
 </body>
 </html>
+
